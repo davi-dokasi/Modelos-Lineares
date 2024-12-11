@@ -54,6 +54,7 @@ library(dplyr)
 library(ggplot2)
 library(corrplot)
 library(GGally)
+library(car)
 ```
 
 
@@ -78,48 +79,65 @@ summary(model)
 #### **Interpretação dos Coeficientes**
 - $\beta_0$ (intercept) Nos indica que o valor esperado quando do veículo quando *car_run_km* (quilometragem) e **prod_year* (ano de produção) são zero. Logo o beta_0 não tem interpretação prática pois o ano de produção não pode ser 0
 
-- ***car_run_km*** (Quilometragem):Para cada quilômetro adicional rodado, o preço do veículo aumenta em média 0.0001871 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente não é estatisticamente significativo (p-valor = 0.813).
+- ***car_run_km*** (Quilometragem):Para cada quilômetro adicional rodado, o preço do veículo aumenta em média 0.0001871 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente não é estatisticamente significativo (p-valor = 0.813). Indicando que a variável *car_run_km* não exerce efeito significativo no modelo.
 
-- ***prod_year*** (Ano de produção): ara cada ano adicional de produção, o preço do veículo aumenta em média 2.676 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente não é estatisticamente significativo (p-valor = 0.402).
+- ***prod_year*** (Ano de produção): ara cada ano adicional de produção, o preço do veículo aumenta em média 2.676 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente não é estatisticamente significativo (p-valor = 0.402). Indicando que a variável *prod_year* não exerce efeito significativo no modelo.
 
 - ***engine_volume*** (volume do motor) : Para cada unidade adicional no volume do motor, o preço do veículo aumenta em média 1.583 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente é estatisticamente significativo (p-valor < 2e-16).
 
 - ***cylinders*** (cilindro adicional):  Para cada cilindro adicional, o preço do veículo diminui em média 362.5 unidades monetárias, mantendo todas as outras variáveis constantes. Este coeficiente é estatisticamente significativo (p-valor = 6.31e-08).
 
+##### Conclusão
+
+Considerando que apenas duas variáveis independentes apresentaram efeito significativo no modelo, este será construído utilizando apenas essas duas. Além disso, é necessário verificar se as variáveis restantes não apresentam multicolinearidade entre si.
+
+#### Análise do dos coeficientes estimados do modelo
+```{r,include=TRUE, echo=TRUE}
+data <- price %>%
+  inner_join(depreciation, by = "app_id") 
+
+data <- data %>%
+  select(price, engine_volume, cylinders)
+
+model <- lm(formula = price ~ engine_volume + cylinders, data = data)
+
+summary(model)
+```
+
 #### Interpretação do teste F
 - **Resultado do teste F**:
-  - **F-statistic**: 90.11
+  - **F-statistic**: 179.9
   - **p-valor**: < 2.2e-16
 
 - **Interpretação**:
-  - **F-statistic**: O valor de 90.11 indica que a variabilidade explicada pelo modelo é significativamente maior do que a variabilidade não explicada. Em outras palavras, o modelo como um todo é significativo.
-  - **p-valo**r: O p-valor é extremamente pequeno (< 2.2e-16), o que significa que a probabilidade de observar um valor de F tão extremo, ou mais extremo, sob a hipótese nula é praticamente zero.
+  - **F-statistic**: O valor de 179.9 indica que a variabilidade explicada pelo modelo é significativamente maior do que a variabilidade não explicada. Em outras palavras, o modelo como um todo é significativo.
+  - **p-valor**: O p-valor é extremamente pequeno (< 2.2e-16), o que significa que a probabilidade de observar um valor de F tão extremo, ou mais extremo, sob a hipótese nula é praticamente zero.
 
 - **Conclusão**:
   - Como o p-valor é muito menor que qualquer nível de significância comum (por exemplo, 0.05), rejeitamos a hipótese nula.
   - Isso indica que pelo menos uma das variáveis independentes no modelo tem um efeito significativo sobre a variável dependente (preço do veículo).
-  - Portanto, o modelo de regressão linear é estatisticamente significativo e útil para prever o preço dos veículos com base nas variáveis incluídas
+  - Portanto, o modelo de regressão linear é estatisticamente significativo e útil para prever o preço dos veículos com base nas variáveis Volume do motor e número de cilindros.
+  
+##### Multicolinearidade 
+
+````{r}
+corrplot(cor(data), method="number", diag=F)
+
+vif(model)
+```
+Análisando o valor da correlação e do VIF podemos concluir que há evidencias para afirmar que as variáveis não apresentam multicolinearidade entre si.
 
 #### Equação do modelo linear
 
 A equação do modelo linear é dada por:
-$$ \text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} $$
+$$ \text{price} = \beta_0 + \beta_1 \cdot \text{engine_volume} + \beta_2 \cdot \text{cylinders}$$
 
 Substituindo os valores dos coeficientes estimados, temos:
-$$ \text{price} = -1239 + 0.0001871 \cdot \text{car_run_km} + 2.676 \cdot \text{prod_year} + 1.583 \cdot \text{engine_volume} - 362.5 \cdot \text{cylinders} $$
+$$ \text{price} = 4179.67 + 1.58 \cdot \text{engine_volume} -363 \cdot \text{cylinders} $$
 
 #### Gráficos do modelo encontrado
 ```{r}
 # Gráficos de dispersão com linha de regressão ajustada
-ggplot(data, aes(x = car_run_km, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Quilometragem e Preço", x = "Quilometragem (km)", y = "Preço")
-
-ggplot(data, aes(x = prod_year, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Ano de Produção e Preço", x = "Ano de Produção", y = "Preço")
 
 ggplot(data, aes(x = engine_volume, y = price)) +
   geom_point() +
@@ -130,24 +148,38 @@ ggplot(data, aes(x = cylinders, y = price)) +
   geom_point() +
   geom_smooth(method = "lm", col = "blue") +
   labs(title = "Relação entre Número de Cilindros e Preço", x = "Número de Cilindros", y = "Preço")
-
-
-
 ```
 
-#### Gráficos em log escala
-```{r}
-ggplot(data, aes(x = car_run_km, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Quilometragem e Preço (Log Escala)", x = "Quilometragem (km)", y = "Preço (log)")
+Podemos notar que existe a presença de alguns outliers, caso retirasemos os valores:
 
-ggplot(data, aes(x = prod_year, y = price)) +
+```{r}
+data <- data[data$price != 8388607, ]
+data <- data[data$price != 5555555, ]
+data <- data[data$price != 1000000, ]
+
+ggplot(data, aes(x = engine_volume, y = price)) +
   geom_point() +
   geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Ano de Produção e Preço (Log Escala)", x = "Ano de Produção", y = "Preço (log)")
+  labs(title = "Relação entre Volume do Motor e Preço", x = "Volume do Motor", y = "Preço")
+
+ggplot(data, aes(x = cylinders, y = price)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Relação entre Número de Cilindros e Preço", x = "Número de Cilindros", y = "Preço")
+```
+
+
+#### Gráficos em log escala
+
+Para fazer o gráfico do log das variáveis, os outliers foram considerados.
+
+```{r}
+data <- price %>%
+  inner_join(depreciation, by = "app_id") 
+
+data <- data %>%
+  select(price, car_run_km, prod_year, engine_volume, cylinders,)
+
 
 ggplot(data, aes(x = engine_volume, y = price)) +
   geom_point() +
