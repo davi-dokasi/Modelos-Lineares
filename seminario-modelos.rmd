@@ -71,7 +71,29 @@ lapply(packages, library, character.only = TRUE)
 
 price        <- read_csv("auto-market-dataset/price.csv")
 depreciation <- read_csv("auto-market-dataset/depreciation.csv")
+applications <- read_csv("auto-market-dataset/depreciation.csv")
+primary      <- read_csv("auto-market-dataset/primary_features.csv")
+models       <- read_csv("auto-market-dataset/models.csv")
 
+# Juntando as tabelas pelas chaves
+data <- price %>%
+  inner_join(depreciation, by = "app_id")       %>%
+  inner_join(applications, by = "app_id")       %>%
+  inner_join(primary, by = "app_id")            %>%
+  inner_join(models, by = c("model_id" = "id")) %>%
+  filter(is_car == TRUE) %>%
+  select(-ends_with(".y")) %>%
+  rename_with(~ sub("\\.x$", "", .), ends_with(".x"))
+
+data <- data %>%
+  select(app_id,
+         price,
+         car_run_km,
+         prod_year,
+         engine_volume,
+         cylinders,
+         airbags,
+         model_name, )
 ```
 
 # Explorando o banco de dados
