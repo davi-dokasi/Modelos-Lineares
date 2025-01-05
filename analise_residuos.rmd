@@ -1,0 +1,300 @@
+---
+title: "Aula 9 Modelos Lineares - Análise de Resíduos"
+author:  Márcia H. Barbian
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 5
+    theme: flatly
+---
+
+Pacotes
+```{r setup, fig.height = 2.5, fig.width = 5, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
+
+#install.packages("ggplot2")
+#install.packages("ggfortify")
+#install.packages("HistData")
+#install.packages("plotly")
+library(ggplot2)
+library(knitr)
+library(ggfortify)
+library(HistData)
+library(plotly)
+library(tidyr)
+library(gridExtra)
+```
+
+
+## Banco de dados
+
+O banco de dados que será analisado é o mtcars do R, composto por dados de diferentes características de carros:
+
+```{r}
+library(ggplot2)
+dados=mtcars
+dim(dados)
+str(dados)
+
+kable(dados, digits = 3, align = "c", caption = "Banco de dados mtcars")
+
+```
+
+# Estatísticas Descritivas
+
+```{r}
+
+library(ggplot2)
+library(pastecs)
+library(gridExtra)
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(ggExtra)
+
+summary(dados)
+
+aux <- stat.desc(dados)
+aux <- aux[c(4,5,8,9,12:14),]
+rownames(aux) <- c("Mínimo","Máximo","Mediana","Média","Variância","Desvio Padrão","Coeficiente de Variação")
+kable(aux, digits = 3, align = "c", caption = "Principais Estatísticas descritivas do banco de dados")
+
+
+ggplot(dados)+
+  geom_point(mapping = aes(x = hp, y = mpg))
+
+ggplot(dados) +
+  geom_density(mapping = aes(x = hp), fill = "red", alpha = 0.6)+
+  geom_density(mapping = aes(x= mpg), col = "blue", alpha = 0.6) +
+  xlab("altura") + ylab("densidade") 
+
+
+dados %>%
+  select(hp, mpg) %>%
+  gather(key = "variavel", value = "carro", hp, mpg) %>%
+  ggplot()+
+    geom_boxplot(mapping = aes(x = variavel, y = carro, fill= variavel))
+
+
+```
+
+## Modelo
+
+```{r}
+cor(dados$hp, dados$mpg)
+modelo=lm(mpg ~ hp, data= dados)
+
+modelo
+summary(modelo)
+confint(modelo)
+
+ggplot(dados, mapping = aes(x = hp, y = mpg)) +
+  geom_point()+
+  geom_smooth(method = lm)+
+  xlab("potência") + 
+  ylab("consumo")
+  
+```
+
+Hipóteses: $H_0: \beta_1 = 0$ e $H_1: \beta_0 \neq 0$. Com nível de significância $\alpha = 5\%$, estatística de teste -6.742 e p-valor de 1.79e-07, rejeita-se a hipótese nula de que $\beta_1 = 0$. Logo, a potência do carro deve influência no seu consumo.
+
+Para o intertecto não há uma interpretação prática: O consumo médio do carro, quando sua potência é zero, é de $\hat{\beta_0} =30.09886$ milhas/galão). 
+
+O valor de $\hat{\beta_1}=-0.0682$ indica que o aumento em uma únidade na potência do carro deve diminuir em MÉDIA 0.06823 no consumo do carro, em milhas/galão.
+
+
+```{r }
+summary(aov(modelo))
+sum((predict(modelo) - dados$mpg)^2)
+sum(residuals(modelo)^2)
+#residuals(modelo)
+#(predict(modelo) - dados$mpg)
+```
+
+F-statistic: 45.46 e p-value: 1.788e-07. No caso da regressão linear simples, a ANOVA é equivalmente a testar a significância de $\beta_1$. Como p-valor foi baixo então rejeita-se a hipótese de que $\beta_1 = 0$. A variável hp é significativa para explicar a variável mpg.
+
+
+## Análise de residuos
+
+Quando fazemos a análise dos resíduos utilize a função *autoplot* do R. Ela indica vários gráficos que podem auxiliar na avaliação das suposições do modelo.
+
+```{r}
+
+residuos = residuals(modelo)
+
+ggplot()+
+  geom_histogram(mapping = aes(residuos), fill = "purple", alpha=0.3) +
+  geom_vline( xintercept = 0, col= "red", size=2)
+
+autoplot(modelo)
+autoplot(modelo, which = 1:6, ncol = 3, label.size = 3)
+autoplot(modelo, which = 1:6, ncol = 2, label.size = 3)
+
+autoplot(modelo, which = 1, ncol=1, label.size = 3)
+
+ggplot(dados, mapping = aes(y = residuos, x = hp)) +
+  geom_point()+
+  geom_hline(yintercept = 0, col = "blue", size = 2)
+  
+
+```
+
+
+### Normalidade
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=TRUE}
+ggplot(mapping = aes(x = modelo$residuals)) + 
+  geom_histogram() +
+  xlab("Residuals") + ylab(" ")
+```
+
+Através do histograma podemos notar qu parece um comportamento não normal dos resíduos.
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, include=TRUE}
+
+library(ggfortify)
+autoplot(modelo, which = 2, ncol = 1, label.size = 3)
+
+
+#if(!require(qqplotr)){install.packages("qqplotr")}
+library(qqplotr)
+
+ggplot(data.frame(residuos), mapping = aes(sample = residuos)) +
+    stat_qq_band(distribution = "norm") +
+    stat_qq_line(distribution = "norm") +
+    stat_qq_point(distribution = "norm") +
+    labs(x = "Quantis Teóricos", y = "Quantis Amostrais")
+
+```
+
+É possível avaliar a não normalidade dos dados, principalmente nas caudas. Com base no qqplot podemos dizer que os resíduos não são normais.
+
+* Testes não-paramétricos: a hipótese nula desses testes é que os dados provêm de uma distribuição normal, contra a alternativa de que os dados não provêm de uma distribuição normal. Os principais testes são: Shapiro-Wilk, Kolmogorov-Smirnov e Anderson-Darling. 
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, include=TRUE}
+
+library(kableExtra)
+library(nortest)
+
+norm.test.stat = c(shapiro.test(modelo$residuals)$statistic, 
+                   ks.test(modelo$residuals, "pnorm")$statistic, 
+                   ad.test(modelo$residuals)$statistic, 
+                   cvm.test(modelo$residuals)$statistic)
+
+norm.test.pvalue = c(shapiro.test(modelo$residuals)$p.value, 
+                   ks.test(modelo$residuals, "pnorm")$p.value, 
+                   ad.test(modelo$residuals)$p.value, 
+                   cvm.test(modelo$residuals)$p.value)
+
+norm.test = cbind(norm.test.stat, norm.test.pvalue)
+
+rownames(norm.test) = c("Shapiro-Wilk", "Kolmogorov-Smirnov", 
+                        "Anderson-Darling", "Cramer-Von-Mises")
+colnames(norm.test) = c("Statistic", "P.value")
+
+kable(norm.test, align = "c", caption = "Testes de normalidade")
+```
+
+Os testes de Shapiro, Anderson-Darling e Kolmogorov-Smirnov rejeitaram a hipótese nula de que os dados sejam normalmente distribuídos.
+ 
+Dados todas as evidências, podemos dizer que os resíduos desse modelo não seguem distribuição normal.
+  
+### Homocedasticidade
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=TRUE}
+autoplot(modelo, which = 1, label.size = 3)
+```
+
+Os resíduos não parecem se comportar de forma aleatória, indicando um problema de heteroscedasticidade. Apesar disso, o teste de Breusch-Pagan aceitou a hipótese nula de homoscedasticidade.
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, include=TRUE}
+library(lmtest)
+homo.test = cbind(bptest(modelo, studentize = FALSE)$statistic, 
+                  bptest(modelo, studentize = FALSE)$p.value)
+
+rownames(homo.test) = c("Breusch-Pagan")
+colnames(homo.test) = c("Statistic", "P.value")
+
+kable(homo.test, align = "c", caption = "Teste de homocedasticidade")
+```  
+
+### Pontos Influentes, Outliers e Alavancas
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, include=TRUE}
+autoplot(modelo, which = c(3:6), label.size = 3)
+
+```
+
+Pelo gráfico do Resíduos vs Leverage, é possível observar que a observação 31(Maserati) é um ponto de alavanca. Pelo gráfico da distância de cook, o ponto 31 além de ser ponto de alavanca é ponto influente. O gráfico dos valores ajustados pelos resíduos studentizados indica que as observações 31, 26 e 20 são outliers. Além disso, os carros 16 e 20(Toyota Corolla) são pontos influentes. 
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, include=TRUE}
+dados[31,]
+dados[20,]
+dados[26,]
+```
+
+
+### Podemos construir os gráficos do autoplot através dos dados fornecidos pelo modelo 
+
+```{r}
+
+p1=ggplot(modelo, aes(.fitted, .resid))+
+      geom_point()+
+      stat_smooth(method="loess")+
+      geom_hline(yintercept=0, col="red", linetype="dashed")+
+      xlab("Valores ajustados")+ylab("Residuos")+
+      ggtitle("Residuos vs Ajustados")+
+      theme_bw()
+
+
+p2 =ggplot(data.frame(residuals(modelo)), mapping = aes(sample = residuos)) +
+      stat_qq_line(distribution = "norm") +
+      stat_qq_point(distribution = "norm") +
+      labs(x = "Quantis Teóricos", y = "Quantis Amostrais")+
+      theme_bw()
+    
+p3 = ggplot(modelo, aes(.fitted, sqrt(abs(.stdresid))))+
+      geom_point(na.rm=TRUE) +
+      stat_smooth(method="loess", na.rm = TRUE)+
+      xlab("Valores ajustados") +
+      ylab(expression(sqrt("|Residuos padronizados|")))+
+      ggtitle("Locacao escala")+
+      theme_bw()
+      
+p4 = ggplot(modelo, aes(seq_along(.cooksd), .cooksd))+
+        geom_bar(stat="identity", position="identity")+
+        xlab("Numero obs")+
+        ylab("distancia de Cook")+
+        ggtitle("distancia de Cook")+
+        theme_bw()
+        
+p5 = ggplot(modelo, aes(.hat, .stdresid))+
+        geom_point(aes(size=.cooksd), na.rm=TRUE)+
+        stat_smooth(method="loess", na.rm=TRUE)+
+        xlab("Leverage")+ylab("Standardized Residuals")+
+        ggtitle("Residual vs Leverage Plot")+
+        scale_size_continuous("Cook's Distance", range=c(1,5))+
+        theme_bw()+
+        theme(legend.position="bottom")
+          
+p6 = ggplot(modelo, aes(.hat, .cooksd))+
+  geom_point(na.rm=TRUE)+
+  stat_smooth(method="loess", na.rm=TRUE)+
+  xlab("Leverage hii")+ylab("Distancia de Cook")+
+  ggtitle("Distancia de Cook vs Leverage hii/(1-hii)")+
+  geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed")+
+  theme_bw()
+    
+grid.arrange(p1, p3, p4, p5, p6, top='Graficos das análises dos resíduos', ncol=2)
+
+p1
+p2
+p3
+p4
+p5
+p6
+
+```

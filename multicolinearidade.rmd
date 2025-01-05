@@ -1,0 +1,207 @@
+---
+title: "Aula 25 de Modelos Lineares - Multicolinearidade"
+subtitle: 2021/2
+author:  Márcia H. Barbian
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r, warning=FALSE, message=TRUE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
+
+```
+
+```{r, fig.height = 2.5, fig.width = 5}
+
+if(!require(tidyverse)){install.packages("tidyverse")}
+if(!require(ggfortify)){install.packages("ggfortify")}
+if(!require(HistData)){install.packages("HistData")}
+if(!require(plotly)){install.packages("plotly")}#graficos interativos
+if(!require(GGally)){install.packages("GGally")}#ggpairs
+if(!require(reshape2)){install.packages("reshape2")}
+if(!require(corrplot)){install.packages("corrplot")} #grafico matriz de correlacao
+if(!require(car)){install.packages("car")} #VIF
+if(!require(knitr)){install.packages("knitr")} # funcao tabela
+
+
+```
+
+
+
+### Para exemplificar os efeitos que a multicolinearidade na regressão linear, irei simular dois modelos.
+
+# Simulação 1 - Modelo sem presença de multicolinearidade
+
+
+```{r}
+set.seed(123)
+n=100
+x1= rnorm(n)
+x2=rnorm(n)
+x3= rnorm(n)
+x4= rnorm(n)
+epsilon=rnorm(n)
+y = 1 + x1 + x2 +0*x3+0*x4 + epsilon 
+
+dados= data.frame(y, x1, x2, x3, x4)
+
+```
+
+```{r} 
+ggpairs(dados)
+ggpairs(dados, upper = list(combo = "box"),
+        lower = list(continuous = "smooth"))
+
+plot_ly(dados, x = ~x1, y = ~x2, z= ~y) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'x1'),
+                      yaxis = list(title = 'x2'), zaxis = list(title = 'y')))
+
+cor(cbind(x1, x2, x3, x4))
+
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+corrplot.mixed(cor(dados), lower.col = 'black', number.cex = .7)
+
+corrplot(cor(dados), method="number", diag=F)
+
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+```
+
+```{r}
+
+modelo1= lm(y ~x1+x2+x3+x4)
+summary(modelo1)
+
+round(vcov(modelo1), dig = 6) #matriz de variancia e covariancia do modelo
+
+kable(vif(modelo1))
+
+```
+
+
+
+
+# Simulação 2 - Modelo com multicolinearidade
+
+
+```{r}
+set.seed(123)
+n=100
+x1= rnorm(n)
+x2=rnorm(n)
+x3= x1 + rnorm(n, 0, 0.1)
+x4= - x2+ rnorm(n, 0, 0.1)
+epsilon=rnorm(n)
+y = 1 + x1 + x2 +0*x3+0*x4 + epsilon 
+
+dados= data.frame(y, x1, x2, x3, x4)
+```
+
+```{r}
+ggpairs(dados)
+ggpairs(dados, upper = list(combo = "box"),
+        lower = list(continuous = "smooth"))
+
+plot_ly(dados, x = ~x1, y = ~x2, z= ~y) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'x1'),
+                      yaxis = list(title = 'x2'), zaxis = list(title = 'y')))
+
+cor(cbind(x1, x2, x3, x4))
+
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+corrplot.mixed(cor(dados), lower.col = 'black', number.cex = .7)
+corrplot(cor(dados), method="number", diag=F)
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+```
+
+```{r}
+modelo1= lm(y ~x1+x2+x3+x4)
+summary(modelo1)
+
+round(vcov(modelo1), dig = 6) #matriz de variancia e covariancia do modelo
+
+kable(vif(modelo1))
+
+```
+
+
+
+# Banco de dados swiss
+
+O banco de dados possui indicadores sociais do ano de 1888 de 47 províncias da Suíça.
+
+O objetivo da análise é estimar a fertilidade da provincia dado informações como _porcentagem de homens que trabalham no campo_ e _porcentagem de católicos que residem na provincia_.
+
+```{r load-data, message=FALSE}
+#?swiss
+dados=swiss
+str(dados)
+
+```
+
+
+## Análise gráfica
+
+Há inúmeras formas de representar os dados na regressão múltipla, abaixo alguns exemplos de possíveis visualizações.
+
+```{r message=FALSE, warning=FALSE}
+ggpairs(dados)
+
+ggplot(dados) +
+  geom_point(mapping = aes(x = Agriculture, y = Fertility, alpha = Examination), color= "red") +
+  geom_smooth(mapping = aes(x = Agriculture, y = Fertility), method = "lm")
+
+ggplot(dados, mapping = aes(x = Catholic, y = Fertility)) +
+  geom_point(mapping = aes(alpha = Examination)) +
+  geom_smooth(method = "lm")
+
+ggpairs(dados, upper = list(combo = "box"),
+        lower = list(continuous = "smooth"))
+
+
+swiss2 = melt(swiss, id.vars='Fertility')
+ggplot(swiss2) +
+  geom_jitter(aes(value, Fertility, colour=variable),) + geom_smooth(aes(value,Fertility, colour=variable), method=lm, se=FALSE) +
+  facet_wrap(~variable, scales="free_x") +
+  labs(x = "Percentage cover (%)", y = "Number of individuals (N)")
+
+swiss3 = melt(swiss)
+ggplot(swiss3)+
+  geom_boxplot(aes(y= value, x = variable, color = variable, fill = variable))
+
+ggplot(swiss3)+
+  geom_density(aes(x= value, color = variable, fill = variable), alpha =0.2)
+
+ggplot(swiss3)+
+  geom_density(aes(x= value, color = variable, fill = variable), alpha = 0.5)+
+  facet_wrap(~ variable)
+
+```
+
+## Modelo
+
+```{r}
+names(dados)
+modelo1 = lm(Fertility ~Agriculture +Examination + Education+Catholic + Infant.Mortality, dados)
+
+summary(modelo1)
+
+modelo1
+
+confint(modelo1)
+
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+corrplot.mixed(cor(dados), lower.col = 'black', number.cex = .7)
+corrplot(cor(dados), method="number", diag=F)
+corrplot(cor(dados), method="number", order="hclust", addrect=2, diag=F)
+
+round(vcov(modelo1), dig = 6) #matriz de variancia e covariancia do modelo
+
+kable(vif(modelo1))
+
+
+```
