@@ -1,21 +1,25 @@
 ---
-title: "Seminário - Modelos Lineares"
+title: "Prevendo preços de carros com estatística"
+subtitle: "Seminário de modelos lineares"
 author: "Davi, Diogo, João, Thiago e Eduardo Garcez"
 date: "`r Sys.Date()`"
 output: rmdformats::downcute # install.packages('rmdformats')
 params:
   run_chunk: true
 ---
+
+![](images/cars.png)
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
-
+# knitr::opts_chunk$set(cache   = TRUE)
+knitr::opts_chunk$set(include = TRUE)
+knitr::opts_chunk$set(echo    = FALSE)
 ```
 
 ```{r libs, include = FALSE}
@@ -24,7 +28,9 @@ packages <- c("readr",
               "dplyr",
               "ggplot2",
               "corrplot",
-              "GGally")
+              "GGally",
+              "knitr",
+              "png")
 
 install_if_missing <- function(pkg) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -34,44 +40,13 @@ install_if_missing <- function(pkg) {
 
 lapply(packages, install_if_missing)
 lapply(packages, library, character.only = TRUE)
-
 ```
-
-- Exemplo de variáveis que podemos usar para correlacionar com preço:
-
-  - **depreciation.csv**:
-    - car_run_km: Quilometragem do veículo.
-    -  engine_volume: Volume do motor.
-    -  prod_year: Ano de produção.
-    -  cylinders: Número de cilindros.
- - **primary_features.csv**:
-     - fuel_type_id: Tipo de combustível.
-     - gear_type_id: Tipo de câmbio.
-     - drive_type: Tipo de tração.
-     - door_type: Tipo de portas.
-     - color_id: Cor exterior.
-     - man_id: Fabricante.
-     - model_id: Modelo.
- - **price.csv**:
-     - predicted_price: Preço previsto.
-     - pred_min_price: Preço mínimo previsto.
-     - pred_max_price: Preço máximo previsto.
- - **Extra Options:**
-     - abs_break: Sistema de freios ABS.
-     - esd: Controle de estabilidade eletrônico.
-     - el_windows: Vidros elétricos.
-     - conditioner: Ar condicionado.
-     - leather: Bancos de couro.
-     - nav_system: Sistema de navegação.
-     - central_lock: Trava central.
-     - back_camera: Câmera de ré.
-     - start_stop: Sistema start-stop.
 
 ```{r data, include = FALSE}
 
 price        <- read_csv("auto-market-dataset/price.csv")
 depreciation <- read_csv("auto-market-dataset/depreciation.csv")
-applications <- read_csv("auto-market-dataset/depreciation.csv")
+applications <- read_csv("auto-market-dataset/applications.csv")
 primary      <- read_csv("auto-market-dataset/primary_features.csv")
 models       <- read_csv("auto-market-dataset/models.csv")
 
@@ -93,8 +68,43 @@ data <- data %>%
          engine_volume,
          cylinders,
          airbags,
-         model_name, )
+         model_name,
+         category)
+
+# Retirando registros inconsistentes
+data_filter <- data %>%
+  filter(price      > 1000 &
+         car_run_km > 1000)
+
 ```
+
+# Introdução
+
+O dataset foi escolhido pela plataforma kaggle e trata de observações sobre o **mercado automotivo online da Georgia** no ano de **2024**.
+
+Conforme o *schema* apresentado a seguir o dataset apresenta diversos detalhes sobre as vendas, condições do carro e outrs detalhes mais específicos.
+
+Para esse trabalho, com o intuito de enfatizar os processos e análises que foram aprendidos na disciplina, tomamos liberdade de manipular o banco fornecido no site e descartar variáveis não utilizadas no modelo.
+
+Abaixo também apresentamos uma tabela com as variáveis que escolhemos enfatizar e serão tratadas no modelo linear simulado.
+
+![](images/schema.png)
+```{r data_head}
+
+col_names <- c("ID Aplicação",
+               "Preço",
+               "Quilometragem",
+               "Ano Produção",
+               "Volume do motor",
+               "Cilindros",
+               "Airbags",
+               "Carro",
+               "Modelo")
+
+kable(head(data),
+      col.names = col_names)
+```
+
 
 # Explorando o banco de dados
 
