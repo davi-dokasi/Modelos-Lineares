@@ -31,10 +31,12 @@ packages <- c("readr",
               "GGally",
               "knitr",
               "png",
-              "pastecs",
               "rmarkdown",
+              "pastecs",
               "RColorBrewer",
-              "gridExtra")
+              "gridExtra",
+              "car",
+              "corrplot")
 
 install_if_missing <- function(pkg) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -223,168 +225,145 @@ h6 <- ggplot(data, aes(x = airbags)) +
 grid.arrange(p6, h6, nrow = 1, ncol = 2)
 ```
 
-
-# Modelo Simples
-
-# Modelo Multivariado
-
 ## Equação do modelo linear
-A equação do modelo linear é dada por:
-$$
-\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders}
-$$
-```{r mult}
 
-model <- lm(price ~ car_run_km
-                  + prod_year
-                  + engine_volume
-                  + cylinders
-                  + category_num
-                  + airbags
-                  + abs_break
-                  + esd
-                  + el_windows
-                  + conditioner
-                  + leather
-                  + nav_system
-                  + man_id
-                  + category_num, data = data)
+A equação do modelo linear é dada por:
+
+$$
+\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break} + \beta_7 \cdot \text{esd} + \beta_8 \cdot \text{el_windows} + \beta_9 \cdot \text{conditioner} + \beta_10 \cdot \text{leather} + \beta_11 \cdot \text{nav_system}
+$$
+
+```{r mult 1}
 
 model_filter <- lm(price ~ car_run_km
                   + prod_year
                   + engine_volume
                   + cylinders
-                  + category_num
                   + airbags
                   + abs_break
                   + esd
                   + el_windows
                   + conditioner
                   + leather
-                  + nav_system
-                  + man_id
-                  + category_num, data = data_filter)
+                  + nav_system, data = data_filter)
 
-model_log <- lm(log(price) ~ car_run_km
+summary(model_filter)
+```
+
+Apenas algumas variáveis apresentaram significância no modelo. Assim, o próximo modelo será construído excluindo as variáveis com p-valor maior que 0,05
+
+```{r mult 2}
+model_filter <- lm(price ~ car_run_km
                   + prod_year
                   + engine_volume
                   + cylinders
-                  + category_num
                   + airbags
                   + abs_break
-                  + esd
-                  + el_windows
-                  + conditioner
-                  + leather
-                  + nav_system
-                  + man_id
-                  + category_num, data = data_filter)
+                  + nav_system, data = data_filter)
 
-summary(model)
 summary(model_filter)
-summary(model_log)
 ```
 
 ## Interpretação dos Coeficientes
-- $\beta_0$ (intercept) nos indica que o valor esperado quando do veículo quando *car_run_km* (quilometragem) e *prod_year* (ano de produção) são zero. Logo o beta_0 não tem interpretação prática pois o ano de produção não pode ser 0.
 
-- ***car_run_km*** (Quilometragem): Para cada quilômetro adicional rodado, o preço do veículo aumenta em média 0.0001871 unidades monetárias, mantendo todas as outras variáveis constantes. \
-Este coeficiente ***não*** **é estatisticamente significativo** (p-valor = 0.813).
+$$
+\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break}  + \beta_7 \cdot \text{nav_system}
+$$
 
-- ***prod_year*** (Ano de produção): ara cada ano adicional de produção, o preço do veículo aumenta em média 2.676 unidades monetárias, mantendo todas as outras variáveis constantes. \
-Este coeficiente ***não*** **é estatisticamente significativo** (p-valor = 0.402).
+- $\beta_0$ (intercept) nos indica que o valor esperado quando do veículo quando todas variáveis independentes são iguais a zero. Logo o beta_0 não tem interpretação prática pois o ano de produção não pode ser 0.
 
-- ***engine_volume*** (volume do motor) : Para cada unidade adicional no volume do motor, o preço do veículo aumenta em média 1.583 unidades monetárias, mantendo todas as outras variáveis constantes. \
-Este coeficiente **é estatisticamente significativo** (p-valor < 2e-16).
+- ***car_run_km*** (Quilometragem): Para cada quilômetro adicional rodado, o preço do veículo diminuí em média -0.02 unidades monetárias, mantendo todas as outras variáveis constantes.
 
-- ***cylinders*** (cilindro adicional):  Para cada cilindro adicional, o preço do veículo diminui em média 362.5 unidades monetárias, mantendo todas as outras variáveis constantes. \
-Este coeficiente **é estatisticamente significativo** (p-valor = 6.31e-08).
+- ***prod_year*** (Ano de produção): Para cada ano adicional de produção, o preço do veículo aumenta em média 634.40 unidades monetárias, mantendo todas as outras variáveis constantes.
+
+- ***engine_volume*** (volume do motor) : Para cada unidade adicional no volume do motor, o preço do veículo aumenta em média 2.47 unidades monetárias, mantendo todas as outras variáveis constantes.
+
+- ***cylinders*** (cilindro adicional):  Para cada cilindro adicional, o preço do veículo aumenta em média 1682.0 unidades monetárias, mantendo todas as outras variáveis constantes.
+
+- ***airbags*** Para cada airbags, o preço do veículo diminui em média -423.1 unidades monetárias, mantendo todas as outras variáveis constantes.
+
+- ***abs_break*** (Sistema de freio)  Para presença de ABS, o aumento esperado na variável resposta é 1905 unidades monetárias, mantendo todas as outras variáveis constantes.
+
+- ***nav_system*** (Sistema de navegação) Para presença de Sistema de navegação, o aumento esperado na variável resposta é 1389 unidades monetárias, mantendo todas as outras variáveis constantes.
 
 ## Interpretação do teste F
 
-**F-statistic**: 90.11 \
-**p-valor**: < 2.2e-16
+**F-statistic**: 248.9 \
+**p-valor**: < 2.2e-16 \
+**Adjusted R-squared**: 0.03107
 
-- **F-statistic**: O valor de 90.11 indica que a variabilidade explicada pelo modelo é significativamente maior do que a variabilidade não explicada. Em outras palavras, o modelo como um todo é significativo.
+- **F-statistic**: O valor de 248.9 indica que a variabilidade explicada pelo modelo é significativamente maior do que a variabilidade não explicada. Em outras palavras, o modelo como um todo é significativo.
 
 - **p-valo**r: O p-valor é extremamente pequeno (< 2.2e-16), o que significa que a probabilidade de observar um valor de F tão extremo, ou mais extremo, sob a hipótese nula é praticamente zero.
 
+- **Adjusted R-squared**: Apenas cerca de 3.1% da variabilidade dos dados observados é explicada pelo modelo ajustado.
+
 - **Conclusão**:
-  - Como o p-valor é muito menor que qualquer nível de significância comum (por exemplo, 0.05), rejeitamos a hipótese nula.
-  - Isso indica que pelo menos uma das variáveis independentes no modelo tem um efeito significativo sobre a variável dependente (preço do veículo).
-  - Portanto, o modelo de regressão linear é estatisticamente significativo e útil para prever o preço dos veículos com base nas variáveis incluídas
+  Apesar do modelo ser estatisticamente significativo como um todo, com um p-valor extremamente pequeno (< 2.2e-16), sua capacidade explicativa é muito limitada, conforme evidenciado pelo $R^2$ ajustado de apenas 3.1%. Isso indica que o modelo consegue explicar apenas uma pequena fração da variabilidade nos preços dos carros.
+
+  Portanto, prosseguiremos com a análise detalhada dos resíduos, buscando identificar possíveis outliers ou padrões que possam estar influenciando negativamente o desempenho do modelo e comprometendo sua capacidade preditiva.
 
 ## Voltando a equação...
 
 $$
-\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders}
+\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break}  + \beta_7 \cdot \text{nav_system}
 $$
 Substituindo os valores dos coeficientes estimados, temos:
 
 $$
-\text{price} = -1239 + 0.0001871 \cdot \text{car_run_km} + 2.676 \cdot \text{prod_year} + 1.583 \cdot \text{engine_volume} - 362.5 \cdot \text{cylinders}
+\begin{align*}
+\text{price} = &\ -1,275,000 - 0.02198 \cdot \text{car_run_km} + 634.4 \cdot \text{prod_year} + 2.478 \cdot \text{engine_volume} \\
+&+ 1,682 \cdot \text{cylinders} - 423.1 \cdot \text{airbags} + 1,905 \cdot \text{abs_break} + 1,389 \cdot \text{nav_system}
+\end{align*}
 $$
 
-## Gráficos do modelo encontrado
-```{r}
-# Gráficos de dispersão com linha de regressão ajustada
-ggplot(data, aes(x = car_run_km, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Quilometragem e Preço", x = "Quilometragem (km)", y = "Preço")
+## Multicolinearidade
 
-ggplot(data, aes(x = prod_year, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Ano de Produção e Preço", x = "Ano de Produção", y = "Preço")
+```{r multicolinearidade, echo=FALSE}
+data_filter <- data_filter %>%
+  select(nav_system,
+         price,
+         car_run_km,
+         prod_year,
+         cylinders,
+         airbags,
+         abs_break,
+         engine_volume)
 
-ggplot(data, aes(x = engine_volume, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Volume do Motor e Preço", x = "Volume do Motor", y = "Preço")
+# Cálculo do VIF
+vif_values <- vif(model_filter)
+kable(vif_values, col.names = c("VIF"))
 
-ggplot(data, aes(x = cylinders, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  labs(title = "Relação entre Número de Cilindros e Preço", x = "Número de Cilindros", y = "Preço")
-
+corrplot(cor(data_filter), method="number", order="hclust", addrect=2, diag=F)
 ```
 
-#### Gráficos em log escala
-```{r}
-ggplot(data, aes(x = car_run_km, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Quilometragem e Preço (Log Escala)", x = "Quilometragem (km)", y = "Preço (log)")
+Apesar de o Fator de Inflação da Variância (VIF) ter apresentado valores inferiores a 3 para todas as variáveis do modelo, indicando que não há evidências significativas de multicolinearidade de acordo com essa métrica, é importante complementar a análise observando a matriz de correlação entre as variáveis explicativas.
 
-ggplot(data, aes(x = prod_year, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Ano de Produção e Preço (Log Escala)", x = "Ano de Produção", y = "Preço (log)")
+Ao examinar as correlações, identificamos que:
 
-ggplot(data, aes(x = engine_volume, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Volume do Motor e Preço (Log Escala)", x = "Volume do Motor", y = "Preço (log)")
+- A correlação entre as variáveis abs_break e nav_system é de 0.66, indicando uma relação moderada entre essas variáveis.
 
-ggplot(data, aes(x = cylinders, y = price)) +
-  geom_point() +
-  geom_smooth(method = "lm", col = "blue") +
-  scale_y_log10() +
-  labs(title = "Relação entre Número de Cilindros e Preço (Log Escala)", x = "Número de Cilindros", y = "Preço (log)")
-```
+- A correlação entre engine_volume e cylinders é de 0.71, o que caracteriza uma relação mais forte e potencialmente problemática.
+
+Portanto iremos retirar do modelo uma variável: **engine_volume**.
 
 
-#### EXTRAS (INTERESSANTES)
-```{r}
-# Gráficos de diagnóstico
-par(mfrow = c(2, 2))  # Configura a área de plotagem para 2x2 gráficos
-plot(model)
-```
+## Análise de resíduos
 
-```{r}
-# ggpairs(data)
+
+
+## Transformação em log escala
+
+
+```{r modelo log}
+model_log <- lm(log(price) ~ car_run_km
+                  + prod_year
+                  + cylinders
+                  + airbags
+                  + abs_break
+                + nav_system,
+                data = data_filter)
+
+
+summary(model_log)
 ```
