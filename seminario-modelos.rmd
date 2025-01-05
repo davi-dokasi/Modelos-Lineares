@@ -115,118 +115,114 @@ Abaixo também apresentamos uma tabela com as variáveis que escolhemos enfatiza
 ![](images/schema.png)
 ```{r data_head}
 
-col_names <- c("ID Aplicação",
-               "Preço",
-               "Quilometragem",
-               "Ano Produção",
-               "Volume do motor",
-               "Cilindros",
-               "Airbags",
-               "Carro",
-               "Modelo")
-
 kable(head(data))
 ```
 
 
 # Explorando o banco de dados
-```{r, echo = FALSE}
+```{r pg_table}
 
 paged_table(data)
 ```
 
 
 ## Estatísticas gerais
-```{r,echo=FALSE}
-
+```{r,}
 
 aux <- stat.desc(data)
-aux <- aux[c(4,5,8,9,12:14),-c(1, 8)]
+aux <- aux[c(4, 5, 8, 9, 12:14), -c(1, 8)]
 
-rownames(aux) <- c("Mínimo","Máximo","Mediana","Média","Variância","Desvio Padrão","Coeficiente de Variação")
+rownames(aux) <- c("Mínimo",
+                   "Máximo",
+                   "Mediana",
+                   "Média",
+                   "Variância",
+                   "Desvio Padrão",
+                   "Coeficiente de Variação")
 
 kable(aux, digits = 2, align = "c")
 ```
 ## Graficos das variaveis {.tabset}
-```{r,echo = FALSE}
+```{r,}
+
 cores <- brewer.pal(6, "Set2")
 ```
 
 ### Preço
-```{r, echo = FALSE}
-p1 <- ggplot(data,aes(x = "", y=price))+
+```{r }
+p1 <- ggplot(data, aes(x = "", y = price)) +
   geom_boxplot(fill = cores[1]) +
   theme_minimal()
 
-h1 <- ggplot(data,aes(x=log(price))) +
+h1 <- ggplot(data, aes(x = log(price))) +
   geom_histogram(fill = cores[1]) +
   theme_minimal()
 
-grid.arrange(p1,h1,nrow = 1, ncol = 2)
+grid.arrange(p1, h1, nrow = 1, ncol = 2)
 ```
 
 ### Quilometragem
-```{r,echo = FALSE}
-p2 <- ggplot(data,aes(x = "", y=car_run_km))+
+```{r}
+p2 <- ggplot(data, aes(x = "", y = car_run_km)) +
   geom_boxplot(fill = cores[2]) +
   theme_minimal()
 
-h2 <- ggplot(data,aes(x=car_run_km)) +
+h2 <- ggplot(data, aes(x = car_run_km)) +
   geom_histogram(fill = cores[2]) +
   theme_minimal()
 
-grid.arrange(p2,h2,nrow = 1,ncol = 2)
+grid.arrange(p2, h2, nrow = 1, ncol = 2)
 ```
 
 ### Ano do carro
-```{r, echo = FALSE}
-p3 <- ggplot(data,aes(x = "", y=prod_year))+
+```{r }
+p3 <- ggplot(data, aes(x = "", y = prod_year)) +
   geom_boxplot(fill = cores[3]) +
   theme_minimal()
 
-h3 <- ggplot(data,aes(x=prod_year)) +
+h3 <- ggplot(data, aes(x = prod_year)) +
   geom_histogram(fill = cores[3]) +
   theme_minimal()
 
-grid.arrange(p3,h3,nrow = 1,ncol = 2)
+grid.arrange(p3, h3, nrow = 1, ncol = 2)
 ```
 
 ### Volume do motor
-```{r, echo = FALSE}
-p4 <- ggplot(data,aes(x = "", y=engine_volume))+
+```{r }
+p4 <- ggplot(data, aes(x = "", y = engine_volume)) +
   geom_boxplot(fill = cores[4]) +
   theme_minimal()
 
-h4 <- ggplot(data,aes(x=engine_volume)) +
+h4 <- ggplot(data, aes(x = engine_volume)) +
   geom_histogram(fill = cores[4]) +
   theme_minimal()
 
-grid.arrange(p4,h4,nrow = 1,ncol = 2)
+grid.arrange(p4, h4, nrow = 1, ncol = 2)
 ```
 
 ### Cilindros
-```{r, echo = FALSE}
-p5 <- ggplot(data,aes(x = "", y=cylinders))+
+```{r }
+p5 <- ggplot(data, aes(x = "", y = cylinders)) +
   geom_boxplot(fill = cores[5]) +
   theme_minimal()
 
-h5 <- ggplot(data,aes(x=cylinders)) +
+h5 <- ggplot(data, aes(x = cylinders)) +
   geom_histogram(fill = cores[5]) +
   theme_minimal()
 
-grid.arrange(p5,h5,nrow = 1,ncol = 2)
+grid.arrange(p5, h5, nrow = 1, ncol = 2)
 ```
 
 ### Airbags
-```{r,echo = FALSE}
-p6 <- ggplot(data,aes(x = "", y=airbags))+
+```{r}
+p6 <- ggplot(data, aes(x = "", y = airbags)) +
   geom_boxplot(fill = cores[6]) +
   theme_minimal()
-h6 <- ggplot(data,aes(x= airbags)) +
+h6 <- ggplot(data, aes(x = airbags)) +
   geom_histogram(fill = cores[6]) +
   theme_minimal()
 
-grid.arrange(p6,h6,nrow = 1,ncol = 2)
+grid.arrange(p6, h6, nrow = 1, ncol = 2)
 ```
 
 ## Equação do modelo linear
@@ -327,10 +323,10 @@ $$
 data_filter <- data_filter %>%
   select(nav_system,
          price,
-         car_run_km, 
-         prod_year, 
-         cylinders, 
-         airbags, 
+         car_run_km,
+         prod_year,
+         cylinders,
+         airbags,
          abs_break,
          engine_volume)
 
@@ -364,8 +360,8 @@ model_log <- lm(log(price) ~ car_run_km
                   + prod_year
                   + cylinders
                   + airbags
-                  + abs_break 
-                + nav_system, 
+                  + abs_break
+                + nav_system,
                 data = data_filter)
 
 
