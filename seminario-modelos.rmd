@@ -49,16 +49,22 @@ depreciation <- read_csv("auto-market-dataset/depreciation.csv")
 applications <- read_csv("auto-market-dataset/applications.csv")
 primary      <- read_csv("auto-market-dataset/primary_features.csv")
 models       <- read_csv("auto-market-dataset/models.csv")
+extra        <- read_csv("auto-market-dataset/extra_options.csv")
+mans         <- read_csv("auto-market-dataset/mans.csv")
 
 # Juntando as tabelas pelas chaves
 data <- price %>%
-  inner_join(depreciation, by = "app_id")       %>%
-  inner_join(applications, by = "app_id")       %>%
-  inner_join(primary, by = "app_id")            %>%
-  inner_join(models, by = c("model_id" = "id")) %>%
-  filter(is_car == TRUE) %>%
-  select(-ends_with(".y")) %>%
+  inner_join(extra,        by = "app_id")             %>%
+  inner_join(depreciation, by = "app_id")             %>%
+  inner_join(applications, by = "app_id")             %>%
+  inner_join(primary,      by = "app_id")             %>%
+  inner_join(mans,         by = c("man_id"   = "id")) %>%
+  inner_join(models,       by = c("model_id" = "id")) %>%
+  select(-ends_with(".y"))                            %>%
   rename_with(~ sub("\\.x$", "", .), ends_with(".x"))
+
+data <- data %>%
+  filter(is_car == TRUE)
 
 data <- data %>%
   select(app_id,
@@ -68,14 +74,26 @@ data <- data %>%
          engine_volume,
          cylinders,
          airbags,
+         abs_break,
+         esd,
+         el_windows,
+         conditioner,
+         leather,
+         nav_system,
          model_name,
-         category)
+         category,
+         man_id,
+         man_name, )
+
+data <- data %>%
+  mutate(category_num = as.numeric(as.factor(data$category)))
 
 # Retirando registros inconsistentes
 data_filter <- data %>%
-  filter(price      > 1000 &
-         car_run_km > 1000)
-
+  filter(price         > 1000 &
+         car_run_km    > 1000 &
+         engine_volume > 0    &
+         cylinders     > 0)
 ```
 
 # Introdução
@@ -101,8 +119,7 @@ col_names <- c("ID Aplicação",
                "Carro",
                "Modelo")
 
-kable(head(data),
-      col.names = col_names)
+kable(head(data))
 ```
 
 
@@ -119,22 +136,54 @@ $$
 $$
 ```{r mult}
 
-data <- price %>%
-  inner_join(depreciation, by = "app_id")
-
-data <- data %>%
-  select(price,
-         car_run_km,
-         prod_year,
-         engine_volume,
-         cylinders, )
-
 model <- lm(price ~ car_run_km
                   + prod_year
                   + engine_volume
-                  + cylinders, data = data)
+                  + cylinders
+                  + category_num
+                  + airbags
+                  + abs_break
+                  + esd
+                  + el_windows
+                  + conditioner
+                  + leather
+                  + nav_system
+                  + man_id
+                  + category_num, data = data)
+
+model_filter <- lm(price ~ car_run_km
+                  + prod_year
+                  + engine_volume
+                  + cylinders
+                  + category_num
+                  + airbags
+                  + abs_break
+                  + esd
+                  + el_windows
+                  + conditioner
+                  + leather
+                  + nav_system
+                  + man_id
+                  + category_num, data = data_filter)
+
+model_log <- lm(log(price) ~ car_run_km
+                  + prod_year
+                  + engine_volume
+                  + cylinders
+                  + category_num
+                  + airbags
+                  + abs_break
+                  + esd
+                  + el_windows
+                  + conditioner
+                  + leather
+                  + nav_system
+                  + man_id
+                  + category_num, data = data_filter)
 
 summary(model)
+summary(model_filter)
+summary(model_log)
 ```
 
 ## Interpretação dos Coeficientes
@@ -240,5 +289,5 @@ plot(model)
 ```
 
 ```{r, echo==TRUE}
-ggpairs(data)
+# ggpairs(data)
 ```
