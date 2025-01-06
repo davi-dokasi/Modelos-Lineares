@@ -318,11 +318,13 @@ $$
 $$
 
 ## Multicolinearidade
+Outliers podem distorcer as relações entre variáveis, afetando correlações e métricas como o VIF, o que pode dar uma falsa impressão da gravidade da multicolinearidade. Para minimizar esses efeitos, analisamos a multicolinearidade tanto na escala original quanto na logarítmica, já que a transformação logarítmica ajuda a estabilizar a variância e reduzir a influência de valores extremos.
 
+### Escala original
 ```{r multicolinearidade, echo=FALSE}
 data_filter <- data_filter %>%
-  select(nav_system,
-         price,
+  select(price,
+         nav_system,
          car_run_km,
          prod_year,
          cylinders,
@@ -330,23 +332,38 @@ data_filter <- data_filter %>%
          abs_break,
          engine_volume)
 
-# Cálculo do VIF
-vif_values <- vif(model_filter)
-kable(vif_values, col.names = c("VIF"))
-
 corrplot(cor(data_filter), method="number", order="hclust", addrect=2, diag=F)
 ```
 
-Apesar de o Fator de Inflação da Variância (VIF) ter apresentado valores inferiores a 3 para todas as variáveis do modelo, indicando que não há evidências significativas de multicolinearidade de acordo com essa métrica, é importante complementar a análise observando a matriz de correlação entre as variáveis explicativas.
+```{r}
+vif_values <- vif(model_filter)
+kable(vif_values, col.names = c("VIF"))
+```
 
-Ao examinar as correlações, identificamos que:
+Com base nas correlações moderadas entre algumas variáveis explicativas e os baixos valores de VIF (entre 1 e 2), evidenciando que a multicolinearidade não é um problema relevante neste modelo, pois, embora algumas variáveis apresentem covariância moderadas entre si, elas não estão redundantes a ponto de inflacionar a variância dos coeficientes.
 
-- A correlação entre as variáveis abs_break e nav_system é de 0.66, indicando uma relação moderada entre essas variáveis.
+### Com escala log
+```{r}
+data_filter_log <- data_filter %>%
+  mutate(across(where(is.numeric), ~ ifelse(. > 0, log(.), .)))
 
-- A correlação entre engine_volume e cylinders é de 0.71, o que caracteriza uma relação mais forte e potencialmente problemática.
+corrplot(cor(data_filter_log, use = "complete.obs"), 
+         method = "number", 
+         order = "hclust", 
+         addrect = 2, 
+         diag = FALSE)
+```
 
-Portanto iremos retirar do modelo uma variável: **engine_volume**.
+```{r}
+model_filter_log <- lm(price ~ nav_system + car_run_km + prod_year + cylinders + airbags + abs_break + engine_volume, 
+                       data = data_filter_log)
 
+vif_values_log <- vif(model_filter_log)
+
+kable(data.frame(Variáveis = names(vif_values_log), VIF = vif_values_log), col.names = c("Variável", "VIF"))
+```
+
+Mesmo ao aplicar a transformação logarítmica, os valores do VIF permaneceram baixos, indicando que a multicolinearidade não é um problema relevante neste modelo.
 
 ## Análise de resíduos
 
