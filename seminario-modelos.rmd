@@ -91,57 +91,101 @@ data <- data %>%
          man_id,
          man_name, )
 
-data <- data %>%
-  mutate(category_num = as.numeric(as.factor(data$category)))
-
 # Retirando registros inconsistentes
 data_filter <- data %>%
   filter(price         > 1000 &
          car_run_km    > 1000 &
          engine_volume > 0    &
          cylinders     > 0)
+
+# data_filter <- data_filter %>%
+#   filter(price != 8388607)
 ```
 
 # Introdução
 
-O dataset foi escolhido pela plataforma kaggle e trata de observações sobre o **mercado automotivo online da Georgia** no ano de **2024**.
+O dataset foi escolhido pela plataforma kaggle e trata de observações sobre o **mercado automotivo online da Georgia** 🇬🇪 no ano de **2024**.
 
-Conforme o *schema* apresentado a seguir o dataset apresenta diversos detalhes sobre as vendas, condições do carro e outrs detalhes mais específicos.
+![País localizado no cáucaso com cerca de 3,7 milhões de habitantes.](images/georgia_loc.png){width=75%}
 
-Para esse trabalho, com o intuito de enfatizar os processos e análises que foram aprendidos na disciplina, tomamos liberdade de manipular o banco fornecido no site e descartar variáveis não utilizadas no modelo.
+Conforme o *schema* apresentado a seguir o dataset apresenta diversos detalhes sobre as vendas, condições do carro e outros detalhes mais específicos.
+
+Para esse trabalho, com o intuito de enfatizar os processos e análises que foram aprendidos na disciplina, tomamos liberdade de manipular o banco fornecido no site e descosiderar variáveis não utilizadas no modelo.
+
+![](images/schema.png)
+
+---
 
 Abaixo também apresentamos uma tabela com as variáveis que escolhemos enfatizar e serão tratadas no modelo linear simulado.
 
-![](images/schema.png)
 ```{r data_head}
 
-kable(head(data))
+# kable(head(data))
+paged_table(head(data))
 ```
-
 
 # Explorando o banco de dados
-```{r pg_table}
 
-paged_table(data)
+Nos moldes que foram aplicados temos **`r nrow(data_filter)`** registros a serem analisados.
+
+## Estatísticas gerais{.tabset}
+
+### Quantitativas
+
+Visão geral de variáveis quantitativas;
+```{r resum_var}
+
+aux <- stat.desc(data_filter)
+aux <- aux[c(4, 5, 8, 9, 12), c(2:7)]
+
+kable(aux, digits = 2)
 ```
 
+### Categorias
 
-## Estatísticas gerais
-```{r}
+Principais categorias de carros;
+![](images/categories.png)
+```{r rank_cat}
 
-aux <- stat.desc(data)
-aux <- aux[c(4, 5, 8, 9, 12:14), -c(1, 8)]
+result <- aggregate(
+  price ~ category,
+  data = data_filter,
+  FUN = function(x) c(count = length(x), mean = mean(x)))
 
-rownames(aux) <- c("Mínimo",
-                   "Máximo",
-                   "Mediana",
-                   "Média",
-                   "Variância",
-                   "Desvio Padrão",
-                   "Coeficiente de Variação")
+result <- data.frame(
+  category   = result$category,
+  count      = result$price[, "count"],
+  mean_price = result$price[, "mean"]
+)
 
-kable(aux, digits = 2, align = "c")
+result <- result[order(-result$count), ]
+
+kable(head(result),
+      row.names = FALSE)
 ```
+
+### Montadoras
+
+Montadoras com mais registros;
+```{r rank_man}
+
+result <- aggregate(
+  price ~ man_name,
+  data = data_filter,
+  FUN = function(x) c(count = length(x), mean = mean(x)))
+
+result <- data.frame(
+  man_name   = result$man_name,
+  count      = result$price[, "count"],
+  mean_price = result$price[, "mean"]
+)
+
+result <- result[order(-result$count), ]
+
+kable(head(result, 10),
+      row.names = FALSE)
+```
+
 ## Graficos das variaveis {.tabset}
 ```{r}
 
@@ -347,15 +391,15 @@ Com base nas correlações moderadas entre algumas variáveis explicativas e os 
 data_filter_log <- data_filter %>%
   mutate(across(where(is.numeric), ~ ifelse(. > 0, log(.), .)))
 
-corrplot(cor(data_filter_log, use = "complete.obs"), 
-         method = "number", 
-         order = "hclust", 
-         addrect = 2, 
+corrplot(cor(data_filter_log, use = "complete.obs"),
+         method = "number",
+         order = "hclust",
+         addrect = 2,
          diag = FALSE)
 ```
 
 ```{r}
-model_filter_log <- lm(price ~ nav_system + car_run_km + prod_year + cylinders + airbags + abs_break + engine_volume, 
+model_filter_log <- lm(price ~ nav_system + car_run_km + prod_year + cylinders + airbags + abs_break + engine_volume,
                        data = data_filter_log)
 
 vif_values_log <- vif(model_filter_log)
