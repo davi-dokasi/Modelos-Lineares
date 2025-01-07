@@ -367,7 +367,128 @@ Mesmo ao aplicar a transformação logarítmica, os valores do VIF permaneceram 
 
 ## Análise de resíduos
 
+```{r}
+install.packages("car")
+library(car)
+library(ggfortify)
+```
+  
+### Identificação de Outliers por análise de resíduos padronizados
 
+```{r}
+residuos_padronizados <- rstandard(model_filter)
+outliers <- which(abs(residuos_padronizados) > 3)
+print(outliers)
+length(outliers)
+```
+
+  - A análise dos resíduos padronizados revelou a presença de 82 outliers, o que evidencia inconsistências nos dados ou no ajuste do modelo, indicando que ele não captura adequadamente a variabilidade dos dados.
+
+### Gráfico de Resíduos vs Ajustados
+
+```{r}
+autoplot(model_filter, which = 1)
+```
+
+  - O gráfico de Resíduos vs Valores Ajustados apresenta uma distribuição heterogênea, com maior dispersão dos resíduos em valores ajustados mais altos, em torno de 25.000, identificando três outliers principais, sendo um outlier extremo acima de 8 milhões de dólares, que pode ser um erro de registro ou representar uma característica excepcional do banco de dados. 
+  - Podemos ver que a variância claramente aumenta para valores ajustados extremos, mas não há um padrão claro de curva ou tendência nos resíduos que sugira forte não linearidade.
+  
+### Teste de Breusch-Pagan para Heterocedasticidade
+
+```{r}
+bp_test <- bptest(model_filter)
+print(bp_test)
+```
+
+  - Portanto, o p-valor menor que 0,05 indica que há evidências de heterocedasticidade nos resíduos do modelo, isto é, de que a variância dos resíduos não é constante.
+  - A heterocedasticidade visual identificada é confirmada pelo teste de Breusch-Pagan,
+que rejeitou a hipótese nula de que os resíduos estejam distribuídos uniformemente ao longo do gráfico de forma homocedástica, com variância constante.
+  - Em teoria, os resíduos devem ter média zero, mas, como podemos ver, os resíduos não estão perfeitamente equilibrados em torno da linha horizontal, em y = 0, o que indica que a relação entre as variáveis explicativas e a resposta não foi totalmente capturada pelo modelo, que necessita ter seu ajuste melhorado.
+  
+### QQ-Plot
+
+```{r}
+autoplot(model_filter, which = 2)
+```
+
+  - Os resíduos mostram desvios significativos nas caudas em relação à distribuição normal, indicando violação da suposição de normalidade, possivelmente relacionada à presença de outliers, como os identificados pelos índices 45123 e 14042 ou à variabilidade não explicada adequadamente pelo modelo. 
+  
+### Teste de Durbin-Watson
+Teste para verificar autocorrelação nos resíduos:
+
+```{r}
+install.packages("lmtest")
+library(lmtest)
+
+dw_test <- dwtest(model_filter)
+print(dw_test)
+```
+
+  - O p-valor significativo sugere uma leve autocorrelação positiva, o que vai contra o princípio de independência entre os resíduos. No entanto, dado que o DW está quase em 2, essa autocorrelação pode não ser severa o suficiente para impactar gravemente as inferências do modelo.
+  
+### Scale-Location
+
+```{r}
+autoplot(model_filter, which = 3)
+```
+
+  - O gráfico destaca que os valores do desvio padrão dos resíduos aumentam à medida que os valores ajustados crescem, confirmando a variância não constante observada. Isso pode ter ocorrido por conta de variáveis preditivas que deixamos de considerar.
+  
+### Pontos Influentes
+
+```{r}
+cooks_distance <- cooks.distance(model_filter)
+which(cooks_distance > 4 / length(data_filter))
+length(which(cooks_distance > 4 / length(data_filter)))
+
+autoplot(model_filter, which = 4)
+```
+
+  - Utilizando a Distância de Cook, são destacadas observações com valores superiores a 
+4/n, sendo n o número de observações do banco filtrado. O ponto 45123 apresentou um valor elevado, indicando que, além de ser um outlier, exerce uma influência exagerada no modelo. Esse comportamento pode distorcer as estimativas dos coeficientes de regressão e a inferência.
+
+### Pontos de Alavanca
+
+```{r}
+leverage <- hatvalues(model_filter)
+
+n <- nrow(data_filter)
+k <- length(coef(model_filter)) - 1
+cutoff_leverage <- 2 * (k + 1) / n 
+
+pontos_alavanca <- which(leverage > cutoff_leverage)
+
+hat_valores <- hatvalues(model_filter)
+df <- data.frame(
+  obs = seq_along(hat_valores),
+  hat = hat_valores
+)
+
+limite <- 2 * mean(hat_valores)
+
+
+ggplot(df, aes(x = obs, y = hat)) +
+  geom_bar(stat = "identity", fill = "darkcyan", alpha = 0.8) +
+  geom_hline(yintercept = limite, color = "red", linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    title = "Valores de Alavancagem (Hat Values)",
+    x = "Índice da Observação",
+    y = "Leverage"
+  ) +
+  ylim(0, 0.0015) +
+  annotate("text", x = 44000, y = 0.0013, label = "3226 Observações")  
+
+length(pontos_alavanca)
+```
+
+  - Sobre os pontos de alavanca, foram identificadas 3226 observações com alta alavancagem, indicando que essas observações têm grande influência no ajuste do modelo devido à sua distância da média das variáveis explicativas. Essa quantidade significativa de pontos sugere um impacto relevante na estrutura do modelo e na estimativa dos coeficientes, o que pode alterar a interpretação dos resultados e reforça a necessidade de verificar a adequação do modelo às características dos dados.
+  
+```{r}
+autoplot(model_filter, which = 5)
+```
+
+  - No gráfico Resíduos vs Leverage, é possível observar que algumas dessas observações, como os pontos destacados, também são outliers, sendo que o ponto 45123 se destaca por também ser ponto influente. Esses pontos combinam alavancagem elevada e um grande peso nos resíduos, impactando a estabilidade do modelo.
 
 ## Transformação em log escala
 
