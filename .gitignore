@@ -1,4 +1,5 @@
-*.html
-*_cache
-*_files
-*.Rhistory
+/*.html
+/*.Rhistory
+*_cache/
+*_files/
+.vscode
