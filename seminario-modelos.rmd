@@ -26,6 +26,7 @@ knitr::opts_chunk$set(echo    = FALSE)
 
 packages <- c("readr",
               "dplyr",
+              "tidyr",
               "ggplot2",
               "corrplot",
               "GGally",
@@ -46,6 +47,8 @@ install_if_missing <- function(pkg) {
 
 lapply(packages, install_if_missing)
 lapply(packages, library, character.only = TRUE)
+
+colors <- brewer.pal(6, "Set2")
 ```
 
 ```{r data, include = FALSE}
@@ -130,6 +133,8 @@ Nos moldes que foram aplicados temos **`r nrow(data_filter)`** registros a serem
 
 ## Estatísticas gerais{.tabset}
 
+---
+
 ### Quantitativas
 
 Visão geral de variáveis quantitativas;
@@ -186,87 +191,52 @@ kable(head(result, 10),
       row.names = FALSE)
 ```
 
-## Graficos das variaveis {.tabset}
-```{r}
+## Representações gráficas{.tabset}
 
-cores <- brewer.pal(6, "Set2")
-```
+---
 
 ### Preço
-```{r }
-p1 <- ggplot(data, aes(x = "", y = price)) +
-  geom_boxplot(fill = cores[1]) +
-  theme_minimal()
-
-h1 <- ggplot(data, aes(x = log(price))) +
-  geom_histogram(fill = cores[1]) +
-  theme_minimal()
-
-grid.arrange(p1, h1, nrow = 1, ncol = 2)
-```
-
-### Quilometragem
 ```{r}
-p2 <- ggplot(data, aes(x = "", y = car_run_km)) +
-  geom_boxplot(fill = cores[2]) +
-  theme_minimal()
 
-h2 <- ggplot(data, aes(x = car_run_km)) +
-  geom_histogram(fill = cores[2]) +
-  theme_minimal()
-
-grid.arrange(p2, h2, nrow = 1, ncol = 2)
+hist(log(data_filter$price),
+     breaks = 30,
+     col    = colors[1],
+     xlab   = "log(preço)",
+     ylab   = "Frequência",
+     main   = "Histograma de frequência do log dos preços")
 ```
 
-### Ano do carro
-```{r }
-p3 <- ggplot(data, aes(x = "", y = prod_year)) +
-  geom_boxplot(fill = cores[3]) +
-  theme_minimal()
-
-h3 <- ggplot(data, aes(x = prod_year)) +
-  geom_histogram(fill = cores[3]) +
-  theme_minimal()
-
-grid.arrange(p3, h3, nrow = 1, ncol = 2)
-```
-
-### Volume do motor
-```{r }
-p4 <- ggplot(data, aes(x = "", y = engine_volume)) +
-  geom_boxplot(fill = cores[4]) +
-  theme_minimal()
-
-h4 <- ggplot(data, aes(x = engine_volume)) +
-  geom_histogram(fill = cores[4]) +
-  theme_minimal()
-
-grid.arrange(p4, h4, nrow = 1, ncol = 2)
-```
-
-### Cilindros
-```{r }
-p5 <- ggplot(data, aes(x = "", y = cylinders)) +
-  geom_boxplot(fill = cores[5]) +
-  theme_minimal()
-
-h5 <- ggplot(data, aes(x = cylinders)) +
-  geom_histogram(fill = cores[5]) +
-  theme_minimal()
-
-grid.arrange(p5, h5, nrow = 1, ncol = 2)
-```
-
-### Airbags
+### Ano de Fabricação
 ```{r}
-p6 <- ggplot(data, aes(x = "", y = airbags)) +
-  geom_boxplot(fill = cores[6]) +
-  theme_minimal()
-h6 <- ggplot(data, aes(x = airbags)) +
-  geom_histogram(fill = cores[6]) +
-  theme_minimal()
 
-grid.arrange(p6, h6, nrow = 1, ncol = 2)
+hist(data_filter$prod_year,
+     breaks = 30,
+     col    = colors[3],
+     xlab   = "Ano de Fabricação",
+     ylab   = "Frequência",
+     main   = "Histograma de frequência do ano de fabricação")
+```
+
+### Características específicas
+```{r}
+
+data_factor <- data_filter %>%
+  select(esd, el_windows, abs_break, conditioner, nav_system) %>%
+  mutate(across(everything(),
+                as.factor)) %>%
+  pivot_longer(cols      = everything(),
+               names_to  = "feature",
+               values_to = "presence")
+
+ggplot(data_factor, aes(x = feature, fill = presence)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proporção da presença de características",
+       x     = "",
+       y     = "",
+       fill  = "") +
+  scale_fill_manual(values = c(colors[3], colors[6]),
+                    labels = c("Não Possui", "Possui")) +
+  theme_minimal()
 ```
 
 ## Equação do modelo linear
