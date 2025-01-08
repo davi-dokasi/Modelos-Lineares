@@ -247,7 +247,8 @@ ggplot(data_factor, aes(x = feature, fill = presence)) +
 A equação do modelo linear é dada por:
 
 $$
-\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break} + \beta_7 \cdot \text{esd} + \beta_8 \cdot \text{el_windows} + \beta_9 \cdot \text{conditioner} + \beta_10 \cdot \text{leather} + \beta_11 \cdot \text{nav_system}
+\text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break} + \beta_7 \cdot \text{esd} + \\
+\beta_8 \cdot \text{el_windows} + \beta_9 \cdot \text{conditioner} + \beta_10 \cdot \text{leather} + \beta_11 \cdot \text{nav_system}
 $$
 
 ```{r mult 1}
