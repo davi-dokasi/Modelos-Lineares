@@ -288,7 +288,7 @@ $$
 \text{price} = \beta_0 + \beta_1 \cdot \text{car_run_km} + \beta_2 \cdot \text{prod_year} + \beta_3 \cdot \text{engine_volume} + \beta_4 \cdot \text{cylinders} + \beta_5 \cdot \text{airbags} + \beta_6 \cdot \text{abs_break}  + \beta_7 \cdot \text{nav_system}
 $$
 
-- $\beta_0$ (intercept) nos indica que o valor esperado quando do veículo quando todas variáveis independentes são iguais a zero. Logo o beta_0 não tem interpretação prática pois o ano de produção não pode ser 0.
+- $\beta_0$ (intercept) nos indica que o valor esperado do veículo quando todas variáveis independentes são iguais a zero. Logo o beta_0 não tem interpretação prática pois o ano de produção não pode ser 0.
 
 - ***car_run_km*** (Quilometragem): Para cada quilômetro adicional rodado, o preço do veículo diminuí em média -0.02 unidades monetárias, mantendo todas as outras variáveis constantes.
 
