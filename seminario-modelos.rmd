@@ -522,21 +522,6 @@ summary(model_log2)
 
 ## Análise de resíduos
 
-```{r,include = FALSE}
-residuos_padronizados <- rstandard(model_log2)
-outliers <- which(abs(residuos_padronizados) > 3)
-
-data_sem_outliers <- data_filter[-outliers, ]
-
-model_log2 <- lm(log(price) ~ log(car_run_km)
-                                + prod_year
-                                + cylinders
-                                + airbags
-                                + abs_break
-                                + nav_system,
-                              data = data_sem_outliers)
-```
-
 ### Gráfico de Resíduos vs Ajustados
 
 ```{r}
