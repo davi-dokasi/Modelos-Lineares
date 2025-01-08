@@ -36,7 +36,10 @@ packages <- c("readr",
               "RColorBrewer",
               "gridExtra",
               "car",
-              "corrplot")
+              "corrplot",
+              "lmtest",
+              "car",
+              "ggfortify")
 
 install_if_missing <- function(pkg) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -366,12 +369,6 @@ kable(data.frame(Variáveis = names(vif_values_log), VIF = vif_values_log), col.
 Mesmo ao aplicar a transformação logarítmica, os valores do VIF permaneceram baixos, indicando que a multicolinearidade não é um problema relevante neste modelo.
 
 ## Análise de resíduos
-
-```{r}
-install.packages("car")
-library(car)
-library(ggfortify)
-```
   
 ### Identificação de Outliers por análise de resíduos padronizados
 
@@ -417,9 +414,6 @@ autoplot(model_filter, which = 2)
 Teste para verificar autocorrelação nos resíduos:
 
 ```{r}
-install.packages("lmtest")
-library(lmtest)
-
 dw_test <- dwtest(model_filter)
 print(dw_test)
 ```
@@ -492,6 +486,9 @@ autoplot(model_filter, which = 5)
 
 ## Transformação em log escala
 
+dois modelos lineares foram ajustados com o objetivo de linearizar relações não lineares presentes nos dados e reduzir os efeitos de heterocedasticidade, buscando uma maior precisão nas estimativas.
+
+O primeiro modelo foi ajustado utilizando a transformação logarítmica na variável dependente $log(price)$, enquanto as variáveis independentes permaneceram em sua escala original:
 
 ```{r modelo log}
 model_log <- lm(log(price) ~ car_run_km
@@ -505,3 +502,77 @@ model_log <- lm(log(price) ~ car_run_km
 
 summary(model_log)
 ```
+
+O segundo modelo também utilizou a transformação logarítmica na variável dependente $log(price)$. Contudo, adicionalmente, a transformação logarítmica foi aplicada na variável independente "quilometragem rodada pelo carro":
+
+```{r modelo2 log}
+model_log2 <- lm(log(price) ~ log(car_run_km)
+                  + prod_year
+                  + cylinders
+                  + airbags
+                  + abs_break
+                + nav_system,
+                data = data_filter)
+
+
+summary(model_log2)
+```
+
+- Manutenção de Outliers: Nenhum tratamento foi realizado para remover ou ajustar outliers presentes no conjunto de dados. Todas as observações originais foram mantidas no ajuste dos modelos.
+
+## Análise de resíduos
+
+```{r,include = FALSE}
+residuos_padronizados <- rstandard(model_log2)
+outliers <- which(abs(residuos_padronizados) > 3)
+
+data_sem_outliers <- data_filter[-outliers, ]
+
+model_log2 <- lm(log(price) ~ log(car_run_km)
+                                + prod_year
+                                + cylinders
+                                + airbags
+                                + abs_break
+                                + nav_system,
+                              data = data_sem_outliers)
+```
+
+### Gráfico de Resíduos vs Ajustados
+
+```{r}
+autoplot(model_log2, which = 1)
+```
+- A curva azul indica que os resíduos seguem um padrão não aleatório, formando uma curvatura (no formato de "U").Isso sugere que o modelo pode não estar capturando bem a relação entre as variáveis preditoras e a variável resposta. Um modelo linear pode não ser a melhor escolha
+
+### QQ-Plot
+
+```{r}
+autoplot(model_log2, which = 2)
+```
+
+- Os resíduos mostram desvios significativos nas caudas em relação à distribuição normal. 
+  
+### Scale-Location
+
+```{r}
+autoplot(model_log2, which = 3)
+```
+
+- A heterocedasticidade observada indica que os pressupostos de variância constante dos resíduos do modelo linear não são atendidos
+  
+### Teste de Breusch-Pagan para Heterocedasticidade
+
+```{r}
+bp_test <- bptest(model_log2)
+print(bp_test)
+```
+
+- Portanto, o p-valor menor que 0,05 indica que há evidências de heterocedasticidade nos resíduos do modelo, isto é, de que a variância dos resíduos não é constante.
+  
+## Conclusão
+
+- A transformação log não foi suficiente: Apesar de o logaritmo reduzir a escala e estabilizar a variância em muitos casos, ele pode não corrigir completamente a heterocedasticidade ou a não linearidade.
+
+- Pode ser que a relação entre as variáveis explicativas (log(car_run_km), prod_year, etc.) e a variável resposta ainda não seja bem representada por um modelo linear.
+
+- Outliers podem estar influenciando a análise e distorcendo os resultados do modelo.
